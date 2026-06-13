@@ -1,0 +1,27 @@
+go 1.26.3
+
+// Velix backend workspace.
+//
+// `alpha/` is the self-contained HTTP/JSON alpha server.
+// `proto/gen/go` holds the generated protobuf + gRPC stubs (buf generate).
+// `services/*` are the six production gRPC services, each wired to pgx
+// (velixsqlpgx), NATS JetStream (velixnatsjs), and slog observability
+// (velixobsslog). External integrations (R2, LiveKit, APNs/FCM/WebPush,
+// Vault) are seam-stubbed: they return Unavailable until credentials are
+// provisioned, so every service builds and boots offline.
+use (
+	./alpha
+	./proto/gen/go
+	./services/routing
+	./services/identity
+	./services/media
+	./services/push
+	./services/call
+	./services/notifier
+	./pkg/velixsqlpgx
+	./pkg/velixobsslog
+	./pkg/velixnatsjs
+	./pkg/velixhealth
+	./pkg/velixgrpcauth
+	./pkg/velixtoken
+)

@@ -1,0 +1,13 @@
+version: v2
+# The proto module lives under proto/. Run buf from there:
+#   cd proto && buf generate
+modules:
+  - path: proto
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - STANDARD
+  enum_zero_value_suffix: _UNSPECIFIED
+  service_suffix: Service

@@ -1,0 +1,16 @@
+version: v2
+# Generates Go protobuf + gRPC stubs into proto/gen/go (a standalone Go
+# module included in go.work). Requires the local plugins:
+#   go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+#   go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+# Run from the backend/ directory:
+#   buf generate
+plugins:
+  - local: protoc-gen-go
+    out: proto/gen/go
+    opt:
+      - paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: proto/gen/go
+    opt:
+      - paths=source_relative
