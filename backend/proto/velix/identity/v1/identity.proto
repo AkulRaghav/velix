@@ -1,0 +1,205 @@
+syntax = "proto3";
+
+package velix.identity.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/identity/internal/genproto/velix/identity/v1;identityv1";
+
+// IdentityService owns accounts, devices, prekeys, and tokens.
+//
+// Auth posture summary:
+//   CreateAccount, SignIn, RefreshToken               — AUTH_NONE (signature-verified)
+//   AddDevice, ListDevices, RevokeDevice              — AUTH_CLIENT
+//   PublishPrekeys, FetchPrekeyBundle                 — AUTH_CLIENT
+//   UpdateProfile                                     — AUTH_CLIENT
+service IdentityService {
+  // Create a new account from a client-generated identity public key.
+  // The server NEVER sees a private key. The signature proves the client
+  // controls the corresponding private key.
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+
+  // Sign in an existing account. The client signs a server-issued challenge
+  // with its identity private key.
+  rpc SignIn(SignInRequest) returns (SignInResponse);
+
+  // Refresh access token using a long-lived refresh token. One-time use;
+  // a new refresh token is returned.
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+
+  // Revoke a session (sign out one device).
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+
+  // Add a device to the existing identity. Requires an attestation signature
+  // from an existing device's identity key.
+  rpc AddDevice(AddDeviceRequest) returns (AddDeviceResponse);
+
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+
+  rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
+
+  // Publish or refresh prekeys (signed prekey + one-time prekeys).
+  rpc PublishPrekeys(PublishPrekeysRequest) returns (PublishPrekeysResponse);
+
+  // Fetch a prekey bundle for X3DH. Consumes one one-time prekey.
+  rpc FetchPrekeyBundle(FetchPrekeyBundleRequest) returns (FetchPrekeyBundleResponse);
+
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+}
+
+// ----- CreateAccount ------------------------------------------------------
+
+message CreateAccountRequest {
+  string idempotency_key = 1;
+
+  // 32-byte Ed25519 public key.
+  bytes identity_public_key = 2;
+
+  // First device's X25519 public key.
+  bytes device_public_key = 3;
+
+  // Sign(identity_priv, sha256(device_public_key) || timestamp).
+  bytes attestation_signature = 4;
+
+  google.protobuf.Timestamp signed_at = 5;
+
+  // Optional — set during signup if user picked one.
+  string handle = 6;
+
+  string device_name = 7;
+  string device_platform = 8;
+  string locale = 9;
+}
+
+message CreateAccountResponse {
+  Account     account     = 1;
+  Device      device      = 2;
+  TokenPair   tokens      = 3;
+}
+
+// ----- SignIn -------------------------------------------------------------
+
+message SignInRequest {
+  string idempotency_key = 1;
+
+  // The account identifier (hash of identity public key).
+  string account_id = 2;
+
+  // The device that's signing in.
+  bytes device_public_key = 3;
+
+  // Sign(identity_priv, server_challenge || device_pubkey).
+  // server_challenge fetched separately via a stub method (Phase 7).
+  bytes attestation_signature = 4;
+}
+
+message SignInResponse {
+  Account   account = 1;
+  Device    device  = 2;
+  TokenPair tokens  = 3;
+}
+
+// ----- RefreshToken -------------------------------------------------------
+
+message RefreshTokenRequest {
+  string idempotency_key = 1;
+  string refresh_token   = 2;
+}
+
+message RefreshTokenResponse {
+  TokenPair tokens = 1;
+}
+
+// ----- Sessions / devices --------------------------------------------------
+
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+
+message RevokeSessionResponse {}
+
+message AddDeviceRequest {
+  string idempotency_key = 1;
+  bytes  device_public_key = 2;
+  bytes  attestation_signature = 3; // signed by an existing device's identity key
+  string device_name = 4;
+  string device_platform = 5;
+}
+
+message AddDeviceResponse {
+  Device    device = 1;
+  TokenPair tokens = 2;
+}
+
+message ListDevicesRequest {}
+
+message ListDevicesResponse {
+  repeated Device devices = 1;
+}
+
+message RevokeDeviceRequest {
+  string device_id = 1;
+}
+
+message RevokeDeviceResponse {}
+
+// ----- Prekeys ------------------------------------------------------------
+
+message PublishPrekeysRequest {
+  bytes signed_prekey = 1;       // signed by the device's identity key
+  bytes signed_prekey_signature = 2;
+  google.protobuf.Timestamp signed_at = 3;
+  repeated bytes one_time_prekeys = 4;
+}
+
+message PublishPrekeysResponse {}
+
+message FetchPrekeyBundleRequest {
+  string account_id = 1;
+  string device_id  = 2;
+}
+
+message FetchPrekeyBundleResponse {
+  bytes identity_public_key = 1;
+  bytes signed_prekey = 2;
+  bytes signed_prekey_signature = 3;
+  // May be empty if the account has run out (clients re-publish).
+  bytes one_time_prekey = 4;
+}
+
+// ----- Profile ------------------------------------------------------------
+
+message UpdateProfileRequest {
+  string display_name_hash = 1;  // HMAC of plaintext name
+  string handle = 2;             // optional handle change
+}
+
+message UpdateProfileResponse {
+  Account account = 1;
+}
+
+// ----- Common -------------------------------------------------------------
+
+message Account {
+  string id                       = 1;
+  string handle                   = 2;
+  string locale                   = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message Device {
+  string id                       = 1;
+  string account_id               = 2;
+  string name                     = 3;
+  string platform                 = 4;
+  google.protobuf.Timestamp paired_at = 5;
+  google.protobuf.Timestamp last_seen_at = 6;
+  string status                   = 7;
+}
+
+message TokenPair {
+  string access_token  = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp access_expires_at = 3;
+  google.protobuf.Timestamp refresh_expires_at = 4;
+}

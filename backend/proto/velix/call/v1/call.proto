@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package velix.call.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/call/internal/genproto/velix/call/v1;callv1";
+
+// CallService manages call lifecycle and broker LiveKit room access tokens.
+// The bytes flow through LiveKit; this service never sees media frames.
+//
+// Auth posture: AUTH_CLIENT for all RPCs.
+service CallService {
+  // Initiate a call. Returns the LiveKit room name + access tokens for the
+  // caller's devices and the callees' devices (callees pull theirs via
+  // their inbound envelope).
+  rpc CreateCall(CreateCallRequest) returns (CreateCallResponse);
+
+  // Issue a fresh LiveKit access token (TTL ~5 min). Used when a callee
+  // accepts an incoming call envelope.
+  rpc IssueCallToken(IssueCallTokenRequest) returns (IssueCallTokenResponse);
+
+  // End the call from this device's perspective. Other participants get
+  // a CallParticipantLeftEvent.
+  rpc EndCall(EndCallRequest) returns (EndCallResponse);
+
+  // Reject an incoming call.
+  rpc RejectCall(RejectCallRequest) returns (RejectCallResponse);
+}
+
+// ----- CreateCall ----------------------------------------------------------
+
+message CreateCallRequest {
+  string idempotency_key  = 1;
+  string conversation_id  = 2;
+  // "audio" | "video"
+  string mode             = 3;
+  // E2EE-via-LiveKit-Insertable-Streams: "e2ee" (default) or "sfu_trust"
+  // (only for very large groups; opt-in).
+  string security_mode    = 4;
+}
+
+message CreateCallResponse {
+  string call_id        = 1;
+  string livekit_room   = 2;
+  string livekit_token  = 3;
+  google.protobuf.Timestamp token_expires_at = 4;
+}
+
+// ----- IssueCallToken ------------------------------------------------------
+
+message IssueCallTokenRequest {
+  string call_id = 1;
+}
+
+message IssueCallTokenResponse {
+  string livekit_token = 1;
+  google.protobuf.Timestamp token_expires_at = 2;
+}
+
+// ----- EndCall -------------------------------------------------------------
+
+message EndCallRequest {
+  string idempotency_key = 1;
+  string call_id         = 2;
+}
+
+message EndCallResponse {}
+
+// ----- RejectCall ----------------------------------------------------------
+
+message RejectCallRequest {
+  string idempotency_key = 1;
+  string call_id         = 2;
+  // "busy" | "declined" | "unavailable"
+  string reason          = 3;
+}
+
+message RejectCallResponse {}

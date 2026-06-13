@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package velix.events.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/routing/internal/genproto/velix/events/v1;eventsv1";
+
+// All NATS payloads. Past tense; one message per subject; never carries
+// plaintext user content.
+
+// ----- Account / device lifecycle -----------------------------------------
+
+message AccountCreatedEvent {
+  string event_id   = 1;
+  string account_id = 2;
+  google.protobuf.Timestamp at = 3;
+}
+
+message AccountSuspendedEvent {
+  string event_id   = 1;
+  string account_id = 2;
+  string reason     = 3;
+  google.protobuf.Timestamp at = 4;
+}
+
+message AccountDeletedEvent {
+  string event_id   = 1;
+  string account_id = 2;
+  google.protobuf.Timestamp at = 3;
+}
+
+message DevicePairedEvent {
+  string event_id   = 1;
+  string account_id = 2;
+  string device_id  = 3;
+  string platform   = 4;
+  google.protobuf.Timestamp at = 5;
+}
+
+message DeviceRevokedEvent {
+  string event_id   = 1;
+  string account_id = 2;
+  string device_id  = 3;
+  string reason     = 4;
+  google.protobuf.Timestamp at = 5;
+}
+
+// ----- Message routing -----------------------------------------------------
+
+// Per-device fanout payload. Subject: velix.deliver.<account>.<device>
+message DeliverEnvelopeEvent {
+  string event_id            = 1;
+  string envelope_id         = 2;
+  string recipient_account_id = 3;
+  string recipient_device_id = 4;
+  bytes  ciphertext          = 5;
+  google.protobuf.Timestamp enqueued_at = 6;
+  google.protobuf.Timestamp ttl_at      = 7;
+}
+
+message MessageDeliveredEvent {
+  string event_id    = 1;
+  string envelope_id = 2;
+  string device_id   = 3;
+  google.protobuf.Timestamp at = 4;
+}
+
+message MessageReadEvent {
+  string event_id           = 1;
+  string conversation_id    = 2;
+  string device_id          = 3;
+  string up_to_message_id   = 4;
+  google.protobuf.Timestamp at = 5;
+}
+
+// ----- Push ---------------------------------------------------------------
+
+message PushRequestEvent {
+  string event_id        = 1;
+  string device_id       = 2;
+  bytes  encrypted_payload = 3; // already encrypted by routing
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message PushDeliveredEvent {
+  string event_id  = 1;
+  string device_id = 2;
+  string platform  = 3;
+  google.protobuf.Timestamp at = 4;
+}
+
+// ----- Media --------------------------------------------------------------
+
+message MediaUploadedEvent {
+  string event_id              = 1;
+  string media_id              = 2;
+  string owner_account_id      = 3;
+  string content_type_class    = 4;
+  int64  size_bytes            = 5;
+  google.protobuf.Timestamp at = 6;
+}
+
+// ----- Call ---------------------------------------------------------------
+
+message CallStartedEvent {
+  string event_id        = 1;
+  string call_id         = 2;
+  string conversation_id = 3;
+  string mode            = 4;  // "e2ee" | "sfu_trust"
+  google.protobuf.Timestamp at = 5;
+}
+
+message CallEndedEvent {
+  string event_id     = 1;
+  string call_id      = 2;
+  google.protobuf.Timestamp at = 3;
+}
+
+message CallParticipantJoinedEvent {
+  string event_id   = 1;
+  string call_id    = 2;
+  string account_id = 3;
+  string device_id  = 4;
+  google.protobuf.Timestamp at = 5;
+}
+
+message CallParticipantLeftEvent {
+  string event_id    = 1;
+  string call_id     = 2;
+  string account_id  = 3;
+  string device_id   = 4;
+  string left_reason = 5;
+  google.protobuf.Timestamp at = 6;
+}

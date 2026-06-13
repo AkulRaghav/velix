@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package velix.media.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/media/internal/genproto/velix/media/v1;mediav1";
+
+// MediaService brokers presigned uploads and downloads against Cloudflare R2.
+// The bytes flow client → R2; this service never touches plaintext or
+// ciphertext bytes.
+//
+// Auth posture: AUTH_CLIENT for all RPCs.
+//
+// Rate-limit defaults:
+//   CreateUpload   30 / 60s per account
+//   FinalizeUpload 30 / 60s per account
+//   IssueDownload 240 / 60s per account
+service MediaService {
+  // Issue a presigned upload URL (PUT). Client uploads ciphertext directly.
+  rpc CreateUpload(CreateUploadRequest) returns (CreateUploadResponse);
+
+  // Notify the service that the client finished uploading. The service
+  // verifies object existence + size with R2 and emits MediaUploadedEvent.
+  rpc FinalizeUpload(FinalizeUploadRequest) returns (FinalizeUploadResponse);
+
+  // Issue a presigned download URL (GET) for an existing media id, scoped
+  // to the calling identity's authorization (the recipient must hold the
+  // media key, which is ratcheted out-of-band; this service only authorizes
+  // the bytes fetch).
+  rpc IssueDownload(IssueDownloadRequest) returns (IssueDownloadResponse);
+
+  // Mark a media object for deletion. Deletion is asynchronous and runs
+  // through the lifecycle reconciler (see docs/phase-6/06-media-service.md).
+  rpc DeleteMedia(DeleteMediaRequest) returns (DeleteMediaResponse);
+}
+
+// ----- CreateUpload --------------------------------------------------------
+
+message CreateUploadRequest {
+  string idempotency_key = 1;
+
+  // Coarse content-type class — never the exact MIME. We store one of:
+  //   "image" | "video" | "audio" | "voice" | "file" | "sticker"
+  string content_type_class = 2;
+
+  // Declared ciphertext size in bytes. Server enforces ≤ 100 MB.
+  int64  size_bytes = 3;
+}
+
+message CreateUploadResponse {
+  string media_id        = 1;
+  string upload_url      = 2;
+  // Headers the client must echo on the PUT (signed).
+  map<string, string> upload_headers = 3;
+  google.protobuf.Timestamp upload_url_expires_at = 4;
+}
+
+// ----- FinalizeUpload ------------------------------------------------------
+
+message FinalizeUploadRequest {
+  string idempotency_key = 1;
+  string media_id        = 2;
+
+  // Client computes blake3(ciphertext); server uses it for integrity checks
+  // and as a content-address fingerprint for de-duplication.
+  bytes  ciphertext_blake3 = 3;
+}
+
+message FinalizeUploadResponse {
+  google.protobuf.Timestamp finalized_at = 1;
+}
+
+// ----- IssueDownload -------------------------------------------------------
+
+message IssueDownloadRequest {
+  string media_id = 1;
+}
+
+message IssueDownloadResponse {
+  string download_url = 1;
+  google.protobuf.Timestamp download_url_expires_at = 2;
+}
+
+// ----- DeleteMedia ---------------------------------------------------------
+
+message DeleteMediaRequest {
+  string idempotency_key = 1;
+  string media_id        = 2;
+}
+
+message DeleteMediaResponse {}

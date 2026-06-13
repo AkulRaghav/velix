@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package velix.push.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/push/internal/genproto/velix/push/v1;pushv1";
+
+// PushService manages device push tokens (APNs / FCM / WebPush) and emits
+// PushRequestEvent for the notifier to deliver. The push service NEVER
+// decrypts user content; it forwards opaque ciphertext that the OS push
+// infrastructure shows as "New message" until the device decrypts.
+//
+// Auth posture: AUTH_CLIENT for all RPCs except RegisterToken at signup
+// (signature-verified).
+service PushService {
+  // Register or refresh a push token for a device.
+  rpc RegisterToken(RegisterTokenRequest) returns (RegisterTokenResponse);
+
+  // Remove a push token (sign-out, device-revoked).
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+
+  // List tokens registered for the caller's account (own devices only).
+  rpc ListTokens(ListTokensRequest) returns (ListTokensResponse);
+}
+
+// ----- RegisterToken -------------------------------------------------------
+
+message RegisterTokenRequest {
+  string idempotency_key = 1;
+  string device_id       = 2;
+  // Platform: "apns" | "apns_voip" | "fcm" | "webpush"
+  string platform        = 3;
+  // Provider-issued token. Stored as opaque bytes.
+  bytes  token           = 4;
+  // For Web Push: subscription endpoint + keys; carry as a JSON blob.
+  bytes  webpush_subscription = 5;
+}
+
+message RegisterTokenResponse {
+  string token_id = 1;
+}
+
+// ----- RevokeToken ---------------------------------------------------------
+
+message RevokeTokenRequest {
+  string token_id = 1;
+}
+
+message RevokeTokenResponse {}
+
+// ----- ListTokens ----------------------------------------------------------
+
+message ListTokensRequest {}
+
+message ListTokensResponse {
+  repeated PushToken tokens = 1;
+}
+
+message PushToken {
+  string token_id   = 1;
+  string device_id  = 2;
+  string platform   = 3;
+  google.protobuf.Timestamp registered_at = 4;
+  google.protobuf.Timestamp last_used_at  = 5;
+  string status                           = 6;
+}

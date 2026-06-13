@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package velix.notifier.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/notifier/internal/genproto/velix/notifier/v1;notifierv1";
+
+// NotifierService is internal-only. It is consumed by other Velix services
+// (and itself by NATS subscriptions on PushRequestEvent), not by clients.
+//
+// Auth posture: AUTH_INTERNAL — mTLS with a service identity that maps to
+// a SPIFFE ID; see docs/phase-6/09-security.md.
+service NotifierService {
+  // Internal: enqueue a push for delivery. Idempotent by event_id.
+  rpc EnqueuePush(EnqueuePushRequest) returns (EnqueuePushResponse);
+
+  // Inspect delivery status of a previously-enqueued push.
+  rpc GetPushStatus(GetPushStatusRequest) returns (GetPushStatusResponse);
+}
+
+// ----- EnqueuePush ---------------------------------------------------------
+
+message EnqueuePushRequest {
+  // Event id from the originating PushRequestEvent. Idempotency key.
+  string event_id              = 1;
+  string device_id             = 2;
+  // Already encrypted by routing; the notifier never decrypts.
+  bytes  encrypted_payload     = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  // "high" forces immediate; "normal" allows OS coalescing.
+  string priority              = 5;
+}
+
+message EnqueuePushResponse {
+  string delivery_id = 1;
+}
+
+// ----- GetPushStatus -------------------------------------------------------
+
+message GetPushStatusRequest {
+  string delivery_id = 1;
+}
+
+message GetPushStatusResponse {
+  string state                = 1;  // "queued" | "sent" | "delivered" | "failed" | "expired"
+  string platform             = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  string failure_reason       = 4;
+}

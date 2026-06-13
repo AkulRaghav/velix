@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package velix.ai.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/ai/internal/genproto/velix/ai/v1;aiv1";
+
+// AIService is the Velix AI gateway. It is fronted by an OHTTP relay
+// (Phase 8 doc 05); the gateway never learns the client IP.
+//
+// All RPCs require an anonymous quota credential (Privacy Pass); the
+// gateway authenticates the credential, not the user.
+//
+// Trust level: 4 (P7 doc 03). Never level 1 or 2.
+service AIService {
+  // Long-form summarization. Caller passes prompt; gateway runs cloud model.
+  rpc Summarize(SummarizeRequest) returns (SummarizeResponse);
+
+  // Translate a chunk of text. Cloud variant; on-device variant lives
+  // entirely on the client (see velix_ai package, no RPC).
+  rpc Translate(TranslateRequest) returns (TranslateResponse);
+
+  // Assistant turn (single-shot completion). Caller passes a sanitized
+  // prompt; gateway returns a streamed response.
+  rpc Assistant(AssistantRequest) returns (stream AssistantStreamMessage);
+
+  // Abuse-pattern moderation. Cloud variant for opt-in network-level
+  // moderation (the on-device moderator runs irrespective of this).
+  rpc ModerateAbusePattern(ModerateAbusePatternRequest) returns (ModerateAbusePatternResponse);
+}
+
+// ----- Common --------------------------------------------------------------
+
+// AnonymousCredential — Privacy Pass token. The gateway verifies the
+// credential against the issuer; no user identity is exposed.
+message AnonymousCredential {
+  bytes token = 1;
+}
+
+// ----- Summarize -----------------------------------------------------------
+
+message SummarizeRequest {
+  AnonymousCredential credential = 1;
+  // Sanitized prompt (the client's redaction layer ran before send).
+  string prompt = 2;
+  // Hard ceiling on output length.
+  int32  max_tokens = 3;
+  // Locale for the output.
+  string locale = 4;
+}
+
+message SummarizeResponse {
+  string summary = 1;
+}
+
+// ----- Translate -----------------------------------------------------------
+
+message TranslateRequest {
+  AnonymousCredential credential = 1;
+  string text                    = 2;
+  string source_locale           = 3;
+  string target_locale           = 4;
+}
+
+message TranslateResponse {
+  string translated_text = 1;
+}
+
+// ----- Assistant -----------------------------------------------------------
+
+message AssistantRequest {
+  AnonymousCredential credential = 1;
+  string sanitized_prompt        = 2;
+  string locale                  = 3;
+}
+
+message AssistantStreamMessage {
+  oneof body {
+    AssistantTokens tokens = 1;
+    AssistantDone   done   = 2;
+  }
+}
+
+message AssistantTokens {
+  string delta = 1;
+}
+
+message AssistantDone {
+  string finish_reason = 1;  // "stop" | "length" | "filter"
+}
+
+// ----- ModerateAbusePattern ------------------------------------------------
+
+message ModerateAbusePatternRequest {
+  AnonymousCredential credential = 1;
+  // Sanitized text (the user opted to send for cloud moderation).
+  string sanitized_text = 2;
+}
+
+message ModerateAbusePatternResponse {
+  // "ok" | "abuse" | "spam" | "scam" | "csam" | "other"
+  string verdict     = 1;
+  // Confidence 0–1.
+  double confidence  = 2;
+}

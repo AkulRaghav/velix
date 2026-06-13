@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package velix.routing.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/velix/backend/services/routing/internal/genproto/velix/routing/v1;routingv1";
+
+// RoutingService is the realtime hot path.
+//
+// Auth posture:
+//   SendEnvelope, MarkAsRead, ReportTyping  — AUTH_CLIENT
+//   Subscribe, Presence                      — AUTH_CLIENT (long-lived stream)
+//
+// Rate-limit defaults:
+//   SendEnvelope          60 / 60s per account
+//   MarkAsRead            120 / 60s per account
+//   ReportTyping          240 / 60s per account
+service RoutingService {
+  // Enqueue an envelope for one or more recipient devices.
+  // The server stores it as opaque ciphertext; it cannot decrypt.
+  rpc SendEnvelope(SendEnvelopeRequest) returns (SendEnvelopeResponse);
+
+  // Long-lived server-stream of envelopes addressed to the connected device.
+  // The client acks via the bidi stream; on Ack, the server marks delivered.
+  rpc Subscribe(SubscribeRequest) returns (stream SubscribeStreamMessage);
+
+  // Bidirectional stream of presence + typing updates.
+  rpc Presence(stream PresenceClientMessage) returns (stream PresenceServerMessage);
+
+  // Mark all messages in a conversation read up to and including the given
+  // message id. The server writes a delivery_state row and emits read-receipt
+  // envelopes for the conversation peers.
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+
+  // Set the typing flag for a conversation. TTL'd in Redis.
+  rpc ReportTyping(ReportTypingRequest) returns (ReportTypingResponse);
+}
+
+// ----- SendEnvelope --------------------------------------------------------
+
+message SendEnvelopeRequest {
+  // UUIDv7 from the client. Server caches the response for 24h on (account, key).
+  string idempotency_key = 1;
+
+  // One per recipient device. Server enqueues one row per recipient.
+  repeated EnvelopeRecipient recipients = 2;
+}
+
+message EnvelopeRecipient {
+  // Recipient account+device. Server does NOT learn the sender from this
+  // message (sealed sender — sender is inside the ciphertext).
+  string recipient_account_id = 1;
+  string recipient_device_id  = 2;
+
+  // Opaque ciphertext (≤ 64 KB).
+  bytes ciphertext = 3;
+}
+
+message SendEnvelopeResponse {
+  // Server-assigned ULID that the client uses for de-duplication and
+  // for read-receipt correlation. One per recipient.
+  repeated DeliveredEnvelope delivered = 1;
+}
+
+message DeliveredEnvelope {
+  string recipient_device_id = 1;
+  string envelope_id         = 2;
+  google.protobuf.Timestamp enqueued_at = 3;
+}
+
+// ----- Subscribe -----------------------------------------------------------
+
+message SubscribeRequest {
+  // The device id the client is subscribing on behalf of. The auth interceptor
+  // verifies this matches the bearer token's `did` claim.
+  string device_id = 1;
+}
+
+message SubscribeStreamMessage {
+  oneof body {
+    EnvelopeDelivery delivery   = 1;
+    Heartbeat        heartbeat  = 2;
+    Ack              ack_request = 3;  // server requesting an ack of a previous delivery
+  }
+}
+
+message EnvelopeDelivery {
+  string envelope_id  = 1;
+  bytes  ciphertext   = 2;
+  google.protobuf.Timestamp enqueued_at = 3;
+}
+
+message Ack {
+  repeated string envelope_ids = 1;
+}
+
+message Heartbeat {
+  google.protobuf.Timestamp at = 1;
+}
+
+// ----- Presence ------------------------------------------------------------
+
+message PresenceClientMessage {
+  oneof body {
+    SubscribeConversation   subscribe   = 1;
+    UnsubscribeConversation unsubscribe = 2;
+    Heartbeat               heartbeat   = 3;
+  }
+}
+
+message SubscribeConversation {
+  string conversation_id = 1;
+}
+
+message UnsubscribeConversation {
+  string conversation_id = 1;
+}
+
+message PresenceServerMessage {
+  oneof body {
+    PresenceUpdate update     = 1;
+    Heartbeat      heartbeat  = 2;
+  }
+}
+
+message PresenceUpdate {
+  string conversation_id = 1;
+  string account_id      = 2;
+  bool   online          = 3;
+  bool   typing          = 4;
+}
+
+// ----- MarkAsRead ----------------------------------------------------------
+
+message MarkAsReadRequest {
+  string idempotency_key       = 1;
+  string conversation_id       = 2;
+  string up_to_message_id      = 3;
+}
+
+message MarkAsReadResponse {}
+
+// ----- ReportTyping --------------------------------------------------------
+
+message ReportTypingRequest {
+  string conversation_id = 1;
+  bool   typing          = 2;
+}
+
+message ReportTypingResponse {}
