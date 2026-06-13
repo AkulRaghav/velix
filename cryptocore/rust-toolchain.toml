@@ -1,0 +1,11 @@
+# Velix cryptocore pins the MSVC-ABI stable toolchain.
+#
+# Requires Visual Studio Build Tools 2022 with the "Desktop development with
+# C++" workload (VC.Tools.x86.x64 + a Windows 10/11 SDK). Build inside a
+# Developer Command Prompt, or after running:
+#   "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+#
+# CI uses the same MSVC toolchain on windows-latest runners (which ship it
+# preinstalled).
+[toolchain]
+channel = "stable-x86_64-pc-windows-msvc"

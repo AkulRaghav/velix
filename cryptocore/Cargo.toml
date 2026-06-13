@@ -1,0 +1,36 @@
+[package]
+name = "velix_crypto_core"
+version = "1.0.0-phase7"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Velix cryptographic core. Wraps libsignal-protocol-rust + libsodium, exposes a stable C ABI for Dart FFI."
+
+[lib]
+name = "velix_crypto_core"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+# Pinned exact versions; CI verifies reproducibility.
+# libsignal-protocol = { version = "0.49", default-features = false }
+# We pin libsignal in real builds; Phase 7 doc lists the integration plan.
+# Until the FFI implementation lands, this crate compiles a minimal skeleton
+# that the team fills in following docs/phase-7/04-libsignal-binding.md.
+
+zeroize = { version = "1.7", features = ["zeroize_derive"] }
+rand = "0.8"
+hkdf = "0.12"
+sha2 = "0.10"
+hmac = "0.12"
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+blake3 = "1.5"
+
+[dev-dependencies]
+proptest = "1.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
