@@ -1,0 +1,47 @@
+name: velix_app
+description: Velix Flutter application.
+publish_to: none
+version: 1.0.0-phase5+1
+
+environment:
+  sdk: ^3.4.0
+  flutter: ^3.22.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Velix internal packages.
+  velix_design:
+    path: ../../packages/velix_design
+  velix_motion:
+    path: ../../packages/velix_motion
+  velix_3d:
+    path: ../../packages/velix_3d
+  velix_domain:
+    path: ../../packages/velix_domain
+  velix_data:
+    path: ../../packages/velix_data
+  velix_crypto:
+    path: ../../packages/velix_crypto
+  velix_ai:
+    path: ../../packages/velix_ai
+
+  # State, routing, runtime.
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.2.0
+  meta: ^1.12.0
+  path_provider: ^2.1.5
+  lottie: ^3.3.3
+  animated_text_kit: ^4.3.0
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # Fonts vendored under assets/fonts/ in Phase 5; Phase 6 wires the
+  # variable axes once the font files land.
