@@ -1,0 +1,52 @@
+# Flutter/Dart
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/pubspec.lock
+.idea/
+*.iml
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+
+# iOS
+**/ios/Pods/
+**/ios/.symlinks/
+
+# Go
+**/vendor/
+
+# Rust
+**/target/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.pem
+*.key
+
+# State files
+velix-alpha-state.json
+
+# Build artifacts
+*.apk
+*.aab
+*.exe
