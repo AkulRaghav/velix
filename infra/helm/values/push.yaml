@@ -1,0 +1,33 @@
+service:
+  name: push
+  port: 8080
+  healthPort: 8081
+
+env:
+  VELIX_ADDR: ":8080"
+  VELIX_HEALTH_ADDR: ":8081"
+  VELIX_LOG_LEVEL: "info"
+  VELIX_NATS_URL: "nats://nats:4222"
+
+envFromSecret: push-secrets
+
+image:
+  repository: ghcr.io/velix/push
+  digest: ""
+
+replicas: 3
+
+vault:
+  enabled: true
+  role: push
+  secrets:
+    - name: db
+      path: database/creds/push-rw
+      template: |
+        {{`{{ with secret "database/creds/push-rw" }}
+        VELIX_DSN="postgres://{{ .Data.username }}:{{ .Data.password }}@postgres-push:5432/push"
+        {{ end }}`}}
+
+spire:
+  enabled: true
+  spiffeID: spiffe://velix/services/push

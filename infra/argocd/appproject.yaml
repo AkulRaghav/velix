@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: velix
+  namespace: argocd
+spec:
+  description: "Velix production project"
+  sourceRepos:
+    - https://github.com/velix/velix
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: '*'
+    - name: velix-us-east-1
+      namespace: '*'
+    - name: velix-eu-west-1
+      namespace: '*'
+    - name: velix-ap-southeast-1
+      namespace: '*'
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: '*'
+    - group: apps
+      kind: '*'
+    - group: networking.k8s.io
+      kind: '*'
+    - group: autoscaling
+      kind: '*'
+    - group: policy
+      kind: '*'
+    - group: monitoring.coreos.com
+      kind: '*'
+  roles:
+    - name: read-only
+      policies:
+        - p, proj:velix:read-only, applications, get, velix/*, allow
+        - p, proj:velix:read-only, applications, sync, velix/*, deny

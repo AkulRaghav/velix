@@ -1,0 +1,53 @@
+service:
+  name: routing
+  port: 8080
+  healthPort: 8081
+
+# Non-secret config. Secrets (VELIX_DSN, VELIX_TOKEN_KEY) come via envFromSecret.
+env:
+  VELIX_ADDR: ":8080"
+  VELIX_HEALTH_ADDR: ":8081"
+  VELIX_LOG_LEVEL: "info"
+  VELIX_NATS_URL: "nats://nats:4222"
+  VELIX_REDIS_ADDR: "redis:6379"
+
+envFromSecret: routing-secrets
+
+image:
+  repository: ghcr.io/velix/routing
+  digest: ""
+
+replicas: 6
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+hpa:
+  enabled: true
+  minReplicas: 6
+  maxReplicas: 60
+  targetCPUUtilizationPercent: 60
+
+pdb:
+  enabled: true
+  minAvailable: 4
+
+vault:
+  enabled: true
+  role: routing
+  secrets:
+    - name: db
+      path: database/creds/routing-rw
+      template: |
+        {{`{{ with secret "database/creds/routing-rw" }}
+        VELIX_DSN="postgres://{{ .Data.username }}:{{ .Data.password }}@postgres-routing:5432/routing"
+        {{ end }}`}}
+
+spire:
+  enabled: true
+  spiffeID: spiffe://velix/services/routing

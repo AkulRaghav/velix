@@ -1,0 +1,53 @@
+service:
+  name: identity
+  port: 8080
+  healthPort: 8081
+
+env:
+  VELIX_ADDR: ":8080"
+  VELIX_HEALTH_ADDR: ":8081"
+  VELIX_LOG_LEVEL: "info"
+  VELIX_NATS_URL: "nats://nats:4222"
+
+envFromSecret: identity-secrets
+
+image:
+  repository: ghcr.io/velix/identity
+  digest: ""
+
+replicas: 3
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 30
+  targetCPUUtilizationPercent: 60
+
+vault:
+  enabled: true
+  role: identity
+  secrets:
+    - name: db
+      path: database/creds/identity-rw
+      template: |
+        {{`{{ with secret "database/creds/identity-rw" }}
+        VELIX_DSN="postgres://{{ .Data.username }}:{{ .Data.password }}@postgres-identity:5432/identity"
+        {{ end }}`}}
+    - name: token
+      path: secret/data/identity/token
+      template: |
+        {{`{{ with secret "secret/data/identity/token" }}
+        VELIX_TOKEN_KEY="{{ .Data.data.signing_key }}"
+        {{ end }}`}}
+
+spire:
+  enabled: true
+  spiffeID: spiffe://velix/services/identity

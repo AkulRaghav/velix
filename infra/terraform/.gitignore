@@ -1,0 +1,14 @@
+# Terraform provider cache + working dirs (never commit).
+**/.terraform/
+
+# State files live in the S3 backend, never on disk.
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Variable files that may carry secrets.
+*.tfvars
+*.tfvars.json
+
+# Lock files (.terraform.lock.hcl) ARE committed for reproducible provider
+# versions — they are intentionally not ignored here.

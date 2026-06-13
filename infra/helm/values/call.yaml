@@ -1,0 +1,41 @@
+service:
+  name: call
+  port: 8080
+  healthPort: 8081
+
+env:
+  VELIX_ADDR: ":8080"
+  VELIX_HEALTH_ADDR: ":8081"
+  VELIX_LOG_LEVEL: "info"
+  VELIX_NATS_URL: "nats://nats:4222"
+
+envFromSecret: call-secrets
+
+image:
+  repository: ghcr.io/velix/call
+  digest: ""
+
+replicas: 3
+
+vault:
+  enabled: true
+  role: call
+  secrets:
+    - name: db
+      path: database/creds/call-rw
+      template: |
+        {{`{{ with secret "database/creds/call-rw" }}
+        VELIX_DSN="postgres://{{ .Data.username }}:{{ .Data.password }}@postgres-call:5432/call"
+        {{ end }}`}}
+    - name: livekit
+      path: secret/data/call/livekit
+      template: |
+        {{`{{ with secret "secret/data/call/livekit" }}
+        VELIX_LIVEKIT_HOST="{{ .Data.data.host }}"
+        VELIX_LIVEKIT_KEY="{{ .Data.data.api_key }}"
+        VELIX_LIVEKIT_SECRET="{{ .Data.data.api_secret }}"
+        {{ end }}`}}
+
+spire:
+  enabled: true
+  spiffeID: spiffe://velix/services/call

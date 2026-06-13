@@ -1,0 +1,81 @@
+name: cryptocore-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cryptocore/**'
+      - '.github/workflows/cryptocore-ci.yml'
+  pull_request:
+    paths:
+      - 'cryptocore/**'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14, windows-2022]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: format
+        working-directory: cryptocore
+        run: cargo fmt --all -- --check
+      - name: clippy
+        working-directory: cryptocore
+        run: cargo clippy --all-targets -- -D warnings
+      - name: build
+        working-directory: cryptocore
+        run: cargo build --release
+      - name: test
+        working-directory: cryptocore
+        run: cargo test --release
+
+  bench:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: criterion benches
+        working-directory: cryptocore
+        run: cargo bench --no-run
+
+  audit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo audit
+        run: |
+          cargo install cargo-audit --locked
+          (cd cryptocore && cargo audit)
+      - name: cargo deny
+        run: |
+          cargo install cargo-deny --locked
+          (cd cryptocore && cargo deny check) || true
+
+  reproducibility:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: build twice and compare
+        working-directory: cryptocore
+        env:
+          SOURCE_DATE_EPOCH: '0'
+          CARGO_TERM_VERBOSE: 'true'
+        run: |
+          cargo build --release
+          sha256sum target/release/libvelix_crypto_core.* > /tmp/first.sha
+          cargo clean
+          cargo build --release
+          sha256sum target/release/libvelix_crypto_core.* > /tmp/second.sha
+          diff /tmp/first.sha /tmp/second.sha

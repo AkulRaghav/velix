@@ -1,0 +1,9 @@
+apiVersion: v2
+name: velix-service
+description: Generic chart for any Velix Go gRPC service. Each service supplies its own values.yaml.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+# All Velix services share this chart. Per-service customization lives in
+# values-<service>.yaml. See docs/phase-10/03-build-supply-chain.md.

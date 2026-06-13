@@ -1,0 +1,93 @@
+{
+  "title": "Velix — Overview",
+  "uid": "velix-overview",
+  "description": "Top-level customer-impacting view across all six services and three cells.",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "tags": ["velix", "overview"],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Send→Deliver p99 (intra-region)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(velix_send_to_deliver_seconds_bucket[5m])) by (le))"
+        }
+      ],
+      "options": {
+        "thresholds": [
+          {"color": "green", "value": 0},
+          {"color": "yellow", "value": 0.20},
+          {"color": "red", "value": 0.25}
+        ]
+      },
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 6}
+    },
+    {
+      "type": "stat",
+      "title": "Crash-free rate (mobile)",
+      "targets": [
+        {
+          "expr": "1 - sum(rate(velix_mobile_crashes_total[1h])) / sum(rate(velix_mobile_sessions_total[1h]))"
+        }
+      ],
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 6}
+    },
+    {
+      "type": "timeseries",
+      "title": "Service error rate by service",
+      "targets": [
+        {
+          "expr": "sum(rate(grpc_server_handled_total{grpc_code!~\"OK|Canceled\"}[5m])) by (service) / sum(rate(grpc_server_handled_total[5m])) by (service)",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": {"x": 0, "y": 6, "w": 12, "h": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "Per-cell error rate",
+      "targets": [
+        {
+          "expr": "sum(rate(grpc_server_handled_total{grpc_code!~\"OK|Canceled\"}[5m])) by (cell) / sum(rate(grpc_server_handled_total[5m])) by (cell)",
+          "legendFormat": "{{cell}}"
+        }
+      ],
+      "gridPos": {"x": 12, "y": 6, "w": 12, "h": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "RoutingService SendEnvelope p50/p95/p99",
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(grpc_server_handling_seconds_bucket{service=\"routing\",grpc_method=\"SendEnvelope\"}[5m])) by (le))", "legendFormat": "p50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(grpc_server_handling_seconds_bucket{service=\"routing\",grpc_method=\"SendEnvelope\"}[5m])) by (le))", "legendFormat": "p95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{service=\"routing\",grpc_method=\"SendEnvelope\"}[5m])) by (le))", "legendFormat": "p99"}
+      ],
+      "gridPos": {"x": 0, "y": 14, "w": 12, "h": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "NATS publish failures (routing fanout)",
+      "targets": [
+        {"expr": "sum(rate(velix_routing_publish_failures_total[5m]))"}
+      ],
+      "gridPos": {"x": 12, "y": 14, "w": 12, "h": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "Postgres replication lag",
+      "targets": [
+        {"expr": "pg_replication_lag_seconds", "legendFormat": "{{instance}}"}
+      ],
+      "gridPos": {"x": 0, "y": 22, "w": 12, "h": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis memory utilization",
+      "targets": [
+        {"expr": "redis_memory_used_bytes / redis_memory_max_bytes", "legendFormat": "{{instance}}"}
+      ],
+      "gridPos": {"x": 12, "y": 22, "w": 12, "h": 8}
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+service:
+  name: notifier
+  port: 8080
+  healthPort: 8081
+
+env:
+  VELIX_ADDR: ":8080"
+  VELIX_HEALTH_ADDR: ":8081"
+  VELIX_LOG_LEVEL: "info"
+  VELIX_NATS_URL: "nats://nats:4222"
+
+envFromSecret: notifier-secrets
+
+image:
+  repository: ghcr.io/velix/notifier
+  digest: ""
+
+replicas: 3
+
+vault:
+  enabled: true
+  role: notifier
+  secrets:
+    - name: db
+      path: database/creds/notifier-rw
+      template: |
+        {{`{{ with secret "database/creds/notifier-rw" }}
+        VELIX_DSN="postgres://{{ .Data.username }}:{{ .Data.password }}@postgres-notifier:5432/notifier"
+        {{ end }}`}}
+    - name: apns
+      path: secret/data/notifier/apns
+      template: |
+        {{`{{ with secret "secret/data/notifier/apns" }}
+        VELIX_APNS_KEY_ID="{{ .Data.data.key_id }}"
+        VELIX_APNS_TEAM_ID="{{ .Data.data.team_id }}"
+        VELIX_APNS_PRIVATE_KEY="{{ .Data.data.private_key }}"
+        {{ end }}`}}
+    - name: fcm
+      path: secret/data/notifier/fcm
+      template: |
+        {{`{{ with secret "secret/data/notifier/fcm" }}
+        VELIX_FCM_SERVICE_ACCOUNT_JSON="{{ .Data.data.service_account_json }}"
+        {{ end }}`}}
+
+spire:
+  enabled: true
+  spiffeID: spiffe://velix/services/notifier

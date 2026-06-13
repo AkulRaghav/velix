@@ -1,0 +1,61 @@
+# ApplicationSet generates one Argo CD Application per (service × cell).
+# 6 services × 3 cells = 18 Applications, all reconciled from this repo.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: velix
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - service: routing
+                - service: identity
+                - service: media
+                - service: push
+                - service: call
+                - service: notifier
+          - list:
+              elements:
+                - cell: us-east-1
+                - cell: eu-west-1
+                - cell: ap-southeast-1
+  template:
+    metadata:
+      name: '{{.service}}-{{.cell}}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: '{{.service}}'
+        velix.app/cell: '{{.cell}}'
+    spec:
+      project: velix
+      source:
+        repoURL: https://github.com/velix/velix
+        targetRevision: main
+        path: infra/helm/velix-service
+        helm:
+          valueFiles:
+            - ../../values/{{.service}}.yaml
+            - ../../values/{{.service}}-{{.cell}}.yaml
+          # Per-cell override files are optional; the base values file is
+          # authoritative. Missing per-cell files must not fail the sync.
+          ignoreMissingValueFiles: true
+      destination:
+        name: 'velix-{{.cell}}'
+        namespace: 'velix-{{.service}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 5m

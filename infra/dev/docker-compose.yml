@@ -1,0 +1,54 @@
+# Local development stack for Velix backend services.
+#
+# Brings up the stateful dependencies the six gRPC services need:
+#   - Postgres 16 (one database per service, created by init script)
+#   - NATS 2 with JetStream enabled
+#   - Redis 7 (typing/presence TTL)
+#
+# Usage:
+#   docker compose -f infra/dev/docker-compose.yml up -d
+#   ./infra/dev/migrate.sh            # apply each service's migrations
+#
+# These are dev-only credentials. Production secrets come from Vault.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: velix
+      POSTGRES_PASSWORD: velix
+      POSTGRES_DB: velix
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+      - velix-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U velix"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nats:
+    image: nats:2-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  velix-pg:

@@ -1,0 +1,48 @@
+service:
+  name: media
+  port: 8080
+  healthPort: 8081
+
+env:
+  VELIX_ADDR: ":8080"
+  VELIX_HEALTH_ADDR: ":8081"
+  VELIX_LOG_LEVEL: "info"
+  VELIX_NATS_URL: "nats://nats:4222"
+
+envFromSecret: media-secrets
+
+image:
+  repository: ghcr.io/velix/media
+  digest: ""
+
+replicas: 3
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+vault:
+  enabled: true
+  role: media
+  secrets:
+    - name: db
+      path: database/creds/media-rw
+      template: |
+        {{`{{ with secret "database/creds/media-rw" }}
+        VELIX_DSN="postgres://{{ .Data.username }}:{{ .Data.password }}@postgres-media:5432/media"
+        {{ end }}`}}
+    - name: r2
+      path: secret/data/media/r2
+      template: |
+        {{`{{ with secret "secret/data/media/r2" }}
+        VELIX_R2_ENDPOINT="{{ .Data.data.endpoint }}"
+        VELIX_R2_BUCKET="{{ .Data.data.bucket }}"
+        {{ end }}`}}
+
+spire:
+  enabled: true
+  spiffeID: spiffe://velix/services/media

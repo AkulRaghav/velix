@@ -1,0 +1,49 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: pagerduty-default
+  group_by: [alertname, service, cell]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = page
+      receiver: pagerduty-page
+      continue: true
+    - matchers:
+        - severity = ticket
+      receiver: slack-tickets
+    - matchers:
+        - severity = info
+      receiver: slack-info
+
+receivers:
+  - name: pagerduty-default
+    pagerduty_configs:
+      - service_key: '{{ "{{ ENV `PAGERDUTY_DEFAULT_KEY` }}" }}'
+
+  - name: pagerduty-page
+    pagerduty_configs:
+      - service_key: '{{ "{{ ENV `PAGERDUTY_PAGE_KEY` }}" }}'
+        severity: critical
+        details:
+          runbook: '{{ "{{ .CommonAnnotations.runbook }}" }}'
+
+  - name: slack-tickets
+    slack_configs:
+      - api_url: '{{ "{{ ENV `SLACK_TICKETS_WEBHOOK` }}" }}'
+        channel: '#velix-ops-tickets'
+        title: '{{ "{{ .CommonAnnotations.summary }}" }}'
+
+  - name: slack-info
+    slack_configs:
+      - api_url: '{{ "{{ ENV `SLACK_INFO_WEBHOOK` }}" }}'
+        channel: '#velix-ops-info'
+
+inhibit_rules:
+  # If service is down, suppress its derived alerts.
+  - source_matchers: [alertname=ServiceDown]
+    target_matchers: [service!=""]
+    equal: [service]

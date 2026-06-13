@@ -1,0 +1,127 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: velix-slo-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: velix
+    role: alerts
+spec:
+  groups:
+    - name: velix.slo.routing
+      interval: 30s
+      rules:
+        - alert: RoutingErrorRateBurnFast
+          expr: |
+            (
+              sum(rate(grpc_server_handled_total{service="routing",grpc_code!~"OK|Canceled"}[5m]))
+              /
+              sum(rate(grpc_server_handled_total{service="routing"}[5m]))
+            ) > 0.01
+          for: 2m
+          labels:
+            severity: page
+            service: routing
+            slo: error-rate
+          annotations:
+            summary: "routing error rate burning fast (>1% over 5m)"
+            runbook: https://velix.app/runbooks/routing-error-rate
+
+        - alert: RoutingP99LatencyBudgetBurn
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(grpc_server_handling_seconds_bucket{service="routing",grpc_method="SendEnvelope"}[5m])) by (le)
+            ) > 0.25
+          for: 5m
+          labels:
+            severity: page
+            service: routing
+            slo: latency
+          annotations:
+            summary: "routing p99 latency >250ms for SendEnvelope"
+            runbook: https://velix.app/runbooks/routing-latency
+
+    - name: velix.slo.identity
+      interval: 30s
+      rules:
+        - alert: IdentityErrorRateBurnFast
+          expr: |
+            (
+              sum(rate(grpc_server_handled_total{service="identity",grpc_code!~"OK|Canceled"}[5m]))
+              /
+              sum(rate(grpc_server_handled_total{service="identity"}[5m]))
+            ) > 0.02
+          for: 5m
+          labels:
+            severity: page
+            service: identity
+          annotations:
+            summary: "identity error rate burning fast"
+            runbook: https://velix.app/runbooks/identity-error-rate
+
+    - name: velix.infrastructure
+      rules:
+        - alert: ServiceDown
+          expr: up{job=~"velix-.*"} == 0
+          for: 2m
+          labels:
+            severity: page
+          annotations:
+            summary: "{{ $labels.job }} service is down"
+            runbook: https://velix.app/runbooks/service-down
+
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace=~"velix-.*"}[15m]) > 0
+          for: 15m
+          labels:
+            severity: page
+          annotations:
+            summary: "pod {{ $labels.pod }} is crashlooping in {{ $labels.namespace }}"
+            runbook: https://velix.app/runbooks/pod-crashloop
+
+        - alert: OOMKilled
+          expr: increase(kube_pod_container_status_terminated_reason{reason="OOMKilled",namespace=~"velix-.*"}[10m]) > 0
+          for: 1m
+          labels:
+            severity: page
+          annotations:
+            summary: "OOMKilled in {{ $labels.namespace }}/{{ $labels.pod }}"
+            runbook: https://velix.app/runbooks/oom
+
+        - alert: CertExpiringIn14d
+          expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+          for: 1h
+          labels:
+            severity: ticket
+          annotations:
+            summary: "certificate expiring in <14 days for {{ $labels.instance }}"
+            runbook: https://velix.app/runbooks/cert-rotation
+
+    - name: velix.dependencies
+      rules:
+        - alert: PostgresReplicationLag
+          expr: pg_replication_lag_seconds > 30
+          for: 5m
+          labels:
+            severity: page
+          annotations:
+            summary: "postgres replication lag >30s"
+            runbook: https://velix.app/runbooks/postgres-replication
+
+        - alert: NATSStreamDLQGrowing
+          expr: increase(jetstream_stream_messages{stream=~".*-dlq"}[10m]) > 100
+          for: 5m
+          labels:
+            severity: page
+          annotations:
+            summary: "{{ $labels.stream }} DLQ growing"
+            runbook: https://velix.app/runbooks/nats-dlq
+
+        - alert: RedisHighMemory
+          expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+          for: 10m
+          labels:
+            severity: page
+          annotations:
+            summary: "Redis memory >85% of max"
+            runbook: https://velix.app/runbooks/redis-memory
