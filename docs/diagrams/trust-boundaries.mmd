@@ -1,0 +1,53 @@
+%% Velix trust boundaries — Phase 7 doc 03.
+%%
+%% Each box is a trust level:
+%%   1: full trust (the user's own device)
+%%   2: limited trust (paired devices on the same identity)
+%%   3: untrusted (intentionally limited servers)
+%%   4: external (cloud AI providers, push providers, audit-bound vendors)
+
+graph LR
+    classDef l1 fill:#7eea8c,stroke:#205e29,color:#000
+    classDef l2 fill:#bce8b3,stroke:#34772a,color:#000
+    classDef l3 fill:#f5d780,stroke:#a07a00,color:#000
+    classDef l4 fill:#ed8585,stroke:#7a1f1f,color:#000
+
+    subgraph L1[Trust Level 1 — Full]
+        Device[User's device<br/>private keys, plaintext]:::l1
+    end
+
+    subgraph L2[Trust Level 2 — Limited]
+        OtherDevices[Paired devices<br/>same identity]:::l2
+    end
+
+    subgraph L3[Trust Level 3 — Servers, intentionally limited]
+        Routing[routing<br/>opaque ciphertext only]:::l3
+        Identity[identity<br/>public keys + prekeys]:::l3
+        Media[media<br/>presigner; no plaintext]:::l3
+        Push[push<br/>token registry]:::l3
+        Call[call<br/>LiveKit broker]:::l3
+        Notifier[notifier<br/>encrypted payloads]:::l3
+        AI[ai gateway<br/>sanitized prompts only]:::l3
+    end
+
+    subgraph L4[Trust Level 4 — External]
+        OHTTP[OHTTP relay<br/>independent operator]:::l4
+        Anthropic[Anthropic]:::l4
+        OpenAI[OpenAI]:::l4
+        APNs[Apple APNs]:::l4
+        FCM[Google FCM]:::l4
+        R2[Cloudflare R2]:::l4
+        LiveKit[LiveKit-managed]:::l4
+    end
+
+    Device -.->|never sends private keys| Routing
+    Device -.->|sealed ciphertext| Routing
+    Device -.->|content-addressed ciphertext| R2
+    Device -->|paired-device handshake| OtherDevices
+
+    AI -->|HTTP outbound, sanitized only| Anthropic
+    AI -->|HTTP outbound, sanitized only| OpenAI
+    Notifier --> APNs
+    Notifier --> FCM
+    Routing -.->|sees IP and bytes| OHTTP
+    OHTTP --> AI

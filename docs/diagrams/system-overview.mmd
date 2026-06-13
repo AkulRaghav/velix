@@ -1,0 +1,73 @@
+%% Velix system overview — three cells, six services, one cryptographic core.
+%% Render via mermaid-cli or any mermaid-compatible viewer.
+%% Source-of-truth: this file; PNGs under docs/diagrams/png/ are generated.
+
+graph TB
+    classDef client fill:#3478F6,stroke:#1a4099,color:#fff
+    classDef edge fill:#1a4099,stroke:#0d2050,color:#fff
+    classDef svc fill:#f5f8ff,stroke:#3478F6
+    classDef store fill:#fff8e0,stroke:#a08000
+    classDef ext fill:#f5f5f5,stroke:#888,stroke-dasharray:4 4
+
+    Client[Velix mobile/desktop client<br/>cryptocore + velix_crypto FFI]:::client
+    OHTTP[OHTTP relay<br/>independent operator]:::edge
+    Cloudflare[Cloudflare load balancer + WAF]:::edge
+    R2[Cloudflare R2<br/>encrypted media]:::store
+
+    subgraph Cell[velix-cell: us-east-1 / eu-west-1 / ap-southeast-1]
+        Routing[routing<br/>realtime hot path]:::svc
+        Identity[identity<br/>accounts + prekeys]:::svc
+        Media[media<br/>presigned R2]:::svc
+        Push[push<br/>token registry]:::svc
+        Call[call<br/>LiveKit broker]:::svc
+        Notifier[notifier<br/>APNs/FCM/WebPush]:::svc
+
+        PG[(Postgres<br/>per service)]:::store
+        NATS[(NATS JetStream)]:::store
+        Redis[(Redis<br/>presence/typing/idem)]:::store
+        Vault[(HashiCorp Vault)]:::store
+        LiveKit[LiveKit cluster]:::ext
+    end
+
+    AI[ai gateway<br/>velix-operated]:::svc
+    Anthropic[Anthropic API]:::ext
+    OpenAI[OpenAI API]:::ext
+
+    APNs[Apple APNs]:::ext
+    FCM[Google FCM]:::ext
+
+    Client -->|gRPC over TLS| Cloudflare
+    Cloudflare --> Routing
+    Cloudflare --> Identity
+    Cloudflare --> Media
+    Cloudflare --> Push
+    Cloudflare --> Call
+
+    Client -->|opt-in cloud AI<br/>per-query consent| OHTTP
+    OHTTP --> AI
+    AI --> Anthropic
+    AI --> OpenAI
+
+    Client -->|presigned PUT/GET<br/>ciphertext only| R2
+
+    Routing -->|envelopes| PG
+    Routing -->|deliver subj| NATS
+    Routing -->|presence/idem| Redis
+
+    Identity --> PG
+    Identity --> Vault
+
+    Media --> PG
+    Media --> R2
+
+    Push --> PG
+
+    Call --> PG
+    Call --> LiveKit
+
+    Notifier --> PG
+    Notifier --> APNs
+    Notifier --> FCM
+    Notifier --> NATS
+
+    NATS --> Notifier

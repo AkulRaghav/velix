@@ -1,0 +1,22 @@
+%% Send-message hot path. Sealed sender enforced; routing never sees plaintext.
+
+sequenceDiagram
+    autonumber
+    participant Alice as Alice's device
+    participant Identity as identity (per cell)
+    participant Routing as routing (per cell)
+    participant NATS as NATS JetStream
+    participant Bob as Bob's device
+
+    Alice->>Identity: FetchPrekeyBundle(Bob.acct, Bob.dev)
+    Identity-->>Alice: bundle (id_pub, signed_prekey, otpk)
+    Note over Alice: cryptocore: X3DH → session<br/>encrypt(plaintext) → inner_ct<br/>sealed_sender_seal(inner_ct, bob.id_pub) → outer_ct
+    Alice->>Routing: SendEnvelope(idem_key, [{recipient, ct=outer_ct}])
+    Note over Routing: Sealed sender:<br/>routing sees only recipient + opaque bytes
+    Routing->>Routing: insert message_envelope row
+    Routing->>NATS: Publish(velix.deliver.<bob.acct>.<bob.dev>, ct)
+    Routing-->>Alice: SendEnvelopeResponse(envelope_id)
+    NATS->>Bob: deliver subject (over Subscribe stream)
+    Note over Bob: cryptocore: sealed_sender_unseal → (sender, inner_ct)<br/>session.decrypt(inner_ct) → plaintext
+    Bob->>Routing: Ack(envelope_id)
+    Routing->>Routing: mark delivered_at = now()

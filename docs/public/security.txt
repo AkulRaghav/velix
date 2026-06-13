@@ -1,0 +1,15 @@
+# Velix vulnerability disclosure
+#
+# Hosted at: https://velix.app/.well-known/security.txt
+# This file is the source of truth; the website serves this file verbatim.
+# See https://www.rfc-editor.org/rfc/rfc9116.html.
+
+Contact: mailto:security@velix.app
+Contact: https://velix.app/security/report
+Expires: 2027-05-29T00:00:00.000Z
+Encryption: https://velix.app/security/pgp-key.txt
+Acknowledgments: https://velix.app/security/hall-of-fame
+Preferred-Languages: en
+Canonical: https://velix.app/.well-known/security.txt
+Policy: https://velix.app/security/policy
+Hiring: https://velix.app/careers
