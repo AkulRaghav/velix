@@ -1,0 +1,22 @@
+name: velix_motion
+description: Velix motion and interaction library. Implements the Phase-2 motion grammar, realtime motion (waveform, AI streaming, typing), navigation transitions, modal/sheet physics, scroll, and haptics.
+version: 1.0.0-phase4
+publish_to: none
+
+environment:
+  sdk: ^3.4.0
+  flutter: ^3.22.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  velix_design:
+    path: ../velix_design
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: false

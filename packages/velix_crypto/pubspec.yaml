@@ -1,0 +1,19 @@
+name: velix_crypto
+description: Velix cryptographic Dart binding. Wraps cryptocore via dart:ffi.
+publish_to: none
+version: 1.0.0-phase7+1
+
+environment:
+  sdk: ^3.4.0
+  flutter: ^3.22.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ffi: ^2.1.0
+  meta: ^1.12.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0

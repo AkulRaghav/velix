@@ -1,0 +1,16 @@
+name: velix_data
+description: Velix data layer. Repository implementations, drift schema (Phase 6), fixtures.
+version: 1.0.0-phase5
+publish_to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  meta: ^1.12.0
+  velix_domain:
+    path: ../velix_domain
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^4.0.0

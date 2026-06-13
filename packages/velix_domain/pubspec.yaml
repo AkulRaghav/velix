@@ -1,0 +1,14 @@
+name: velix_domain
+description: Velix domain layer. Pure Dart entities, value objects, repository interfaces, use cases. No Flutter dependency.
+version: 1.0.0-phase5
+publish_to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  meta: ^1.12.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^4.0.0
