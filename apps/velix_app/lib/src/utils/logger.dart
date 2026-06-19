@@ -1,27 +1,32 @@
 ﻿/// Logger utility for structured debug output.
-/// In production builds, calls are tree-shaken away.
+/// In production builds, calls are tree-shaken away via assert().
 class VelixLogger {
   VelixLogger._();
 
   static void info(String tag, String message) {
     assert(() {
-      print('[\] \');
+      // ignore: avoid_print
+      print('[$tag] $message');
       return true;
     }());
   }
 
   static void error(String tag, String message, [Object? error]) {
     assert(() {
-      print('[\ ERROR] \');
-      if (error != null) print('  -> \A parameter cannot be found that matches parameter name 'Chord'. A parameter cannot be found that matches parameter name 'Chord'. A parameter cannot be found that matches parameter name 'Chord'. A parameter cannot be found that matches parameter name 'Chord'.');
+      // ignore: avoid_print
+      print('[$tag ERROR] $message');
+      if (error != null) {
+        // ignore: avoid_print
+        print('  -> $error');
+      }
       return true;
     }());
   }
 
   static void network(String method, String url, int statusCode, Duration duration) {
     assert(() {
-      final ms = duration.inMilliseconds;
-      print('[NET] \ \ -> \ (\ms)');
+      // ignore: avoid_print
+      print('[NET] $method $url -> $statusCode (${duration.inMilliseconds}ms)');
       return true;
     }());
   }
