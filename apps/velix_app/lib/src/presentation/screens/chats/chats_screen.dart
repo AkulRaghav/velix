@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velix_data/velix_data.dart';
-import 'package:velix_design/velix_design.dart';
 import 'package:velix_domain/velix_domain.dart';
 
 import '../../../di/providers.dart';

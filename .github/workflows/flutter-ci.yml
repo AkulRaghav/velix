@@ -26,7 +26,13 @@ jobs:
         run: flutter pub get
       - name: analyze
         working-directory: apps/velix_app
-        run: flutter analyze --no-fatal-infos
+        run: |
+          output=$(flutter analyze 2>&1) || true
+          echo "$output"
+          if echo "$output" | grep -q "error •"; then
+            echo "::error::Flutter analyze found errors"
+            exit 1
+          fi
       - name: test
         working-directory: apps/velix_app
         run: flutter test
