@@ -1,5 +1,4 @@
-﻿import 'dart:async';
-class Throttle {
+﻿class Throttle {
   Throttle({this.duration = const Duration(milliseconds: 500)});
   final Duration duration;
   DateTime? _last;

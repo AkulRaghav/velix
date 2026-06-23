@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +11,7 @@ import '../../../di/providers.dart';
 import '../../../router/app_router.dart';
 import '../../components/identity_capsule.dart';
 
-/// Chats — the core screen. Dense, responsive, functional.
+/// Chats â€” the core screen. Dense, responsive, functional.
 class ChatsScreen extends ConsumerStatefulWidget {
   const ChatsScreen({super.key});
 
