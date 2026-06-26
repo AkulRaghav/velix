@@ -24,7 +24,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build, push, sign, SBOM
+      - name: Build and push image
         env:
           SOURCE_DATE_EPOCH: ${{ github.event.head_commit.timestamp }}
           TAG: ${{ github.ref_name }}
@@ -34,31 +34,37 @@ jobs:
             --build-arg GIT_REVISION="${{ github.sha }}" \
             --provenance=true \
             --sbom=true \
-            --tag ghcr.io/velix/${{ matrix.service }}:${TAG} \
-            --tag ghcr.io/velix/${{ matrix.service }}:${{ github.sha }} \
+            --tag ghcr.io/akulraghav/${{ matrix.service }}:${TAG} \
+            --tag ghcr.io/akulraghav/${{ matrix.service }}:${{ github.sha }} \
             --push \
             -f backend/services/${{ matrix.service }}/Dockerfile \
             backend/
       - uses: sigstore/cosign-installer@v3
       - name: cosign sign
-        run: cosign sign --yes ghcr.io/velix/${{ matrix.service }}:${{ github.ref_name }}
+        run: cosign sign --yes ghcr.io/akulraghav/${{ matrix.service }}:${{ github.ref_name }}
 
   release-flutter:
-    runs-on: macos-14
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.x'
-      - working-directory: apps/velix_app
+          flutter-version: '3.44.x'
+          channel: stable
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build release APK
+        working-directory: apps/velix_app
         run: |
           flutter pub get
-          flutter build appbundle --release
-          flutter build ipa --release --no-codesign
+          flutter build apk --release
 
   github-release:
     runs-on: ubuntu-22.04
     needs: [release-backend, release-flutter]
+    if: always() && !cancelled()
     steps:
       - uses: actions/checkout@v4
       - uses: softprops/action-gh-release@v2

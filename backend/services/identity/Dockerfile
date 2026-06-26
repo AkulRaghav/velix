@@ -3,7 +3,7 @@
 #   docker build -f services/identity/Dockerfile -t velix-identity .
 # See docs/phase-10/03-build-supply-chain.md for the supply-chain posture.
 
-FROM golang:1.22-alpine AS build
+FROM golang:1.26-alpine AS build
 
 ARG SOURCE_DATE_EPOCH=0
 ARG GIT_REVISION=unknown

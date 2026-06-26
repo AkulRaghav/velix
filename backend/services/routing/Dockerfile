@@ -3,7 +3,7 @@
 #   docker build -f services/routing/Dockerfile -t velix-routing .
 # See docs/phase-10/03-build-supply-chain.md for the supply-chain posture.
 
-FROM golang:1.22-alpine AS build
+FROM golang:1.26-alpine AS build
 # CI pins this to a digest; the tag is used for local builds.
 
 ARG SOURCE_DATE_EPOCH=0

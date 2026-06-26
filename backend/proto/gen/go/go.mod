@@ -1,6 +1,6 @@
 module github.com/velix/backend/proto/gen/go
 
-go 1.26.3
+go 1.25.0
 
 require (
 	google.golang.org/grpc v1.81.1

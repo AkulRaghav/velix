@@ -2,7 +2,7 @@
 # Build context is the backend/ directory:
 #   docker build -f services/notifier/Dockerfile -t velix-notifier .
 
-FROM golang:1.22-alpine AS build
+FROM golang:1.26-alpine AS build
 
 ARG SOURCE_DATE_EPOCH=0
 ARG GIT_REVISION=unknown
