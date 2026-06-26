@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.x'
-          cache: true
+          cache-dependency-path: backend/**/go.sum
       - name: install proto plugins
         run: |
           go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -36,8 +36,10 @@ jobs:
           done
       - uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.59.1
+          version: v2.1.6
           working-directory: backend/services/routing
+        env:
+          GOWORK: 'off'
 
   test:
     runs-on: ubuntu-latest
@@ -47,7 +49,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.x'
-          cache: true
+          cache-dependency-path: backend/**/go.sum
       - name: alpha build + test
         working-directory: backend/alpha
         run: |
@@ -97,7 +99,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.x'
-          cache: true
+          cache-dependency-path: backend/**/go.sum
       - name: install goose
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
       - name: create per-service databases
@@ -179,7 +181,7 @@ jobs:
         uses: golang/govulncheck-action@v1
         with:
           go-version-input: '1.26.x'
-          work-dir: backend
+          work-dir: backend/alpha
 
   build-images:
     runs-on: ubuntu-latest
