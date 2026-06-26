@@ -153,8 +153,13 @@ func TestEnqueuePush_HappyPath(t *testing.T) {
 	if resp.DeliveryID == "" {
 		t.Fatal("delivery id must be set")
 	}
-	if len(delivs.byID) != 1 {
-		t.Fatalf("expected 1 delivery; got %d", len(delivs.byID))
+	// Allow async goroutine to finish before inspecting shared state.
+	time.Sleep(50 * time.Millisecond)
+	delivs.mu.Lock()
+	count := len(delivs.byID)
+	delivs.mu.Unlock()
+	if count != 1 {
+		t.Fatalf("expected 1 delivery; got %d", count)
 	}
 }
 
