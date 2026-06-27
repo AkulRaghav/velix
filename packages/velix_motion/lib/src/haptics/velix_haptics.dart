@@ -98,4 +98,40 @@ class VelixHaptics {
     if (!_check()) return;
     HapticFeedback.mediumImpact();
   }
+
+  // Message sent confirmation — brief, satisfying tap.
+  static void messageSent() {
+    if (!_check()) return;
+    HapticFeedback.selectionClick();
+  }
+
+  // Message received — subtle notification without being intrusive.
+  static void messageReceived() {
+    if (!_check()) return;
+    HapticFeedback.lightImpact();
+  }
+
+  // Reaction added to a message.
+  static void reactionAdded() {
+    if (!_check()) return;
+    HapticFeedback.selectionClick();
+  }
+
+  // Voice recording started.
+  static void recordStart() {
+    if (!_check()) return;
+    HapticFeedback.mediumImpact();
+  }
+
+  // Voice recording stopped.
+  static void recordStop() {
+    if (!_check()) return;
+    HapticFeedback.lightImpact();
+  }
+
+  /// Reset the deduplication timer. Useful in tests.
+  static void resetForTest() {
+    _lastFire = null;
+    suppressAll = false;
+  }
 }
