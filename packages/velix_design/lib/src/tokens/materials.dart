@@ -98,6 +98,22 @@ class VelixMaterial {
   /// Bottom inset shadow (1-px inner bottom edge). Tier-3 only.
   final Color? bottomInsetShadow;
 
+  /// Whether this material uses backdrop blur (non-zero sigma).
+  bool get hasBlur => blurSigma > 0;
+
+  /// Whether this material has any edge decorations.
+  bool get hasEdge => edge != null || topInsetHighlight != null || bottomInsetShadow != null;
+
+  /// Returns a copy with adjusted opacity for pressed/disabled states.
+  VelixMaterial withOpacity(double opacity) => VelixMaterial(
+        blurSigma: blurSigma,
+        fill: fill.withOpacity(opacity),
+        saturation: saturation,
+        edge: edge?.withOpacity(opacity),
+        topInsetHighlight: topInsetHighlight?.withOpacity(opacity),
+        bottomInsetShadow: bottomInsetShadow?.withOpacity(opacity),
+      );
+
   /// Returns the saturation `ColorFilter` for the material, or null when
   /// saturation is 1.0. Consumers stack `BackdropFilter`s manually so the
   /// filter chain order (saturate-after-blur) stays explicit at the call site.
@@ -120,4 +136,20 @@ class VelixMaterial {
   ImageFilter? get blurFilter => blurSigma == 0
       ? null
       : ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is VelixMaterial &&
+          blurSigma == other.blurSigma &&
+          fill == other.fill &&
+          saturation == other.saturation &&
+          edge == other.edge &&
+          topInsetHighlight == other.topInsetHighlight &&
+          bottomInsetShadow == other.bottomInsetShadow;
+
+  @override
+  int get hashCode => Object.hash(
+        blurSigma, fill, saturation, edge, topInsetHighlight, bottomInsetShadow,
+      );
 }
